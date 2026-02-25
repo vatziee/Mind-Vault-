@@ -1,0 +1,5 @@
+{
+  "name": "VaultMind",
+  "description": "A desktop application for macOS to manage and index large external hard drives for creative professionals.",
+  "requestFramePermissions": []
+}

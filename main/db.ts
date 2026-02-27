@@ -1,9 +1,8 @@
 import Database from 'better-sqlite3';
 import path from 'path';
-import { app } from 'electron';
 import { FileMetadata } from '../types';
 
-const dbPath = path.join(app.getPath('userData'), 'vaultmind.db');
+const dbPath = path.join(process.cwd(), 'vaultmind.db');
 const db = new Database(dbPath);
 
 // Initialize Schema

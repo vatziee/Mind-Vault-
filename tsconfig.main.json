@@ -3,7 +3,8 @@
   "compilerOptions": {
     "outDir": "dist/main",
     "rootDir": "main",
-    "module": "CommonJS",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "target": "ES2022"
   },
   "include": ["main/**/*"]

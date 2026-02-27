@@ -6,7 +6,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "concurrently -k \"npm:dev:main\" \"npm:dev:renderer\"",
+    "dev": "tsx server.ts",
+    "dev:electron": "concurrently -k \"npm:dev:main\" \"npm:dev:renderer\"",
     "dev:main": "tsc -p tsconfig.main.json --watch",
     "dev:renderer": "vite --port=3000 --host=0.0.0.0",
     "start": "npm run build && electron .",

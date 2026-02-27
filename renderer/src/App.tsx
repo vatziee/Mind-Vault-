@@ -1,18 +1,5 @@
 import React, { useState, useEffect } from 'react';
 
-declare global {
-  interface Window {
-    vaultmind: {
-      getDrives: () => Promise<any[]>;
-      scanDrive: (data: { drivePath: string, driveName: string }) => Promise<void>;
-      searchFiles: (query: string) => Promise<any[]>;
-      getStats: () => Promise<any[]>;
-      findDuplicates: () => Promise<any[]>;
-      onScanProgress: (callback: (value: any) => void) => void;
-    };
-  }
-}
-
 import { 
   LayoutDashboard, 
   HardDrive, 
@@ -25,7 +12,8 @@ import {
   Search,
   Settings,
   ChevronRight,
-  AlertCircle
+  AlertCircle,
+  Folder
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -76,12 +64,42 @@ export default function App() {
   const [isAIOpen, setIsAIOpen] = useState(true);
   const [stats, setStats] = useState<any>([]);
   const [drives, setDrives] = useState<any>([]);
+  const [files, setFiles] = useState<any[]>([]);
 
   useEffect(() => {
-    // Initial data fetch
-    window.vaultmind.getDrives().then(setDrives);
-    window.vaultmind.getStats().then(setStats);
+    // Fetch data from the Express backend
+    fetch('/api/drives')
+      .then(res => res.json())
+      .then(setDrives)
+      .catch(console.error);
+      
+    fetch('/api/stats')
+      .then(res => res.json())
+      .then(setStats)
+      .catch(console.error);
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'files') {
+      fetch('/api/files')
+        .then(res => res.json())
+        .then(setFiles)
+        .catch(console.error);
+    }
+  }, [activeTab]);
+
+  const handleScanDrive = async (drivePath: string, driveName: string) => {
+    try {
+      await fetch('/api/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ drivePath, driveName })
+      });
+      console.log('Scan initiated for', driveName);
+    } catch (e) {
+      console.error('Failed to start scan', e);
+    }
+  };
 
   const data = [
     { name: '2021', size: 4.2 },
@@ -106,6 +124,7 @@ export default function App() {
         <nav className="flex-1 space-y-1">
           <SidebarItem icon={LayoutDashboard} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
           <SidebarItem icon={HardDrive} label="Drives" active={activeTab === 'drives'} onClick={() => setActiveTab('drives')} />
+          <SidebarItem icon={Folder} label="Files" active={activeTab === 'files'} onClick={() => setActiveTab('files')} />
           <SidebarItem icon={Copy} label="Duplicates" active={activeTab === 'duplicates'} onClick={() => setActiveTab('duplicates')} />
           <SidebarItem icon={Zap} label="Optimization" active={activeTab === 'optimization'} onClick={() => setActiveTab('optimization')} />
           <SidebarItem icon={Archive} label="Archive" active={activeTab === 'archive'} onClick={() => setActiveTab('archive')} />
@@ -287,7 +306,7 @@ export default function App() {
                       </div>
                       <div className="flex gap-2">
                         <button 
-                          onClick={() => window.vaultmind.scanDrive({ drivePath: drive.path, driveName: drive.name })}
+                          onClick={() => handleScanDrive(drive.path, drive.name)}
                           className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-sm font-medium transition-all"
                         >
                           Index Drive
@@ -298,6 +317,51 @@ export default function App() {
                       </div>
                     </div>
                   ))}
+                </div>
+              </motion.div>
+            )}
+            {activeTab === 'files' && (
+              <motion.div 
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="space-y-6"
+              >
+                <div className="flex justify-between items-end">
+                  <div>
+                    <h2 className="text-3xl font-bold tracking-tight">File Manager</h2>
+                    <p className="text-zinc-500 mt-1">Browse and search your indexed files.</p>
+                  </div>
+                </div>
+                <div className="bg-zinc-900/50 border border-white/5 rounded-2xl overflow-hidden">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-white/5 border-b border-white/5">
+                      <tr>
+                        <th className="p-4 font-medium text-zinc-400">Name</th>
+                        <th className="p-4 font-medium text-zinc-400">Path</th>
+                        <th className="p-4 font-medium text-zinc-400">Size</th>
+                        <th className="p-4 font-medium text-zinc-400">Drive</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {files.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="p-8 text-center text-zinc-500">No files indexed yet. Go to Drives and scan a drive.</td>
+                        </tr>
+                      ) : (
+                        files.map((file, i) => (
+                          <tr key={i} className="hover:bg-white/5 transition-colors">
+                            <td className="p-4 text-white flex items-center gap-3">
+                              <FileText size={16} className="text-emerald-500" />
+                              {file.file_name}
+                            </td>
+                            <td className="p-4 text-zinc-400 truncate max-w-xs">{file.full_path}</td>
+                            <td className="p-4 text-zinc-400 font-mono">{(file.file_size / 1024 / 1024).toFixed(2)} MB</td>
+                            <td className="p-4 text-zinc-400">{file.drive_name}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </motion.div>
             )}
